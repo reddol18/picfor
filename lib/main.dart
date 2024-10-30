@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -60,6 +61,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   String folderPath = '';
+  bool onFolderize = false;
 
   Future<void> _saveFolder(String folderPath) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -72,8 +74,9 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> _pickFolder() async {
-    final result = await FilePicker.platform.getDirectoryPath();
-
+    debugPrint("Before Pick");
+    final result = await getDirectoryPath();
+    debugPrint("After Pick");
     if (result != null) {
       setState(() {
         folderPath = result;
@@ -110,18 +113,20 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> _folderize() async {
     // 폴더 안에 있는 파일들을 가져온다
+    setState(() {
+      onFolderize = true;
+    });
     if (folderPath != null) {
       final directory = Directory(folderPath);
       debugPrint(folderPath);
-      final List<FileSystemEntity> files = directory.listSync();
-      debugPrint(files.length.toString());
-      // 파일들의 생성 날짜를 확인한다
-      for (FileSystemEntity item in files) {
+      final Stream<FileSystemEntity> files = directory.list();
+      files.listen((item) async {
         final file = File(item.path);
         debugPrint(item.path);
         final FileStat stats = await file.stat();
         final DateTime lastModified = stats.modified;
-        if (lastModified.isAfter(selectedDate) || DateUtils.isSameDay(lastModified, selectedDate)) {
+        if (lastModified.isAfter(selectedDate) ||
+            DateUtils.isSameDay(lastModified, selectedDate)) {
           int year = lastModified.year;
           int month = lastModified.month;
           int day = lastModified.day;
@@ -134,7 +139,11 @@ class _MyHomePageState extends State<MyHomePage> {
           // 폴더에 파일을 이동시킨다
           //await moveFile(item.path, newFolderPath);
         }
-      }
+      }, onDone: () {
+        setState(() {
+          onFolderize = false;
+        });
+      });
     }
   }
 
@@ -205,7 +214,7 @@ class _MyHomePageState extends State<MyHomePage> {
               child: Text(dateStr)
             ),
             ElevatedButton(
-              onPressed: hasDate ? _folderize : null,
+              onPressed: hasDate && onFolderize == false ? _folderize : null,
               child: Text('날짜별로 나누기'),
             ),
           ],
