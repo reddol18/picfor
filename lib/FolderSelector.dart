@@ -5,54 +5,43 @@ import 'package:permission_handler/permission_handler.dart';
 
 import 'DirectoryList.dart';
 
-class FolderPicker {
+class FolderSelector {
   static Future<Directory?> pick(
       {
         required BuildContext context,
-        bool barrierDismissible = true,
-        Color? backgroundColor,
-        required Directory rootDirectory,
-        String? message,
-        ShapeBorder? shape}) async {
+        required Directory initDir,
+      }) async {
     if (Platform.isAndroid) {
       Directory? directory = await showDialog<Directory>(
           context: context,
-          barrierDismissible: barrierDismissible,
+          barrierDismissible: true,
           builder: (BuildContext context) {
-            return DirectoryPickerData(
-                backgroundColor: backgroundColor,
-                child: _DirectoryPickerDialog(),
-                message: message,
-                rootDirectory: rootDirectory,
-                shape: shape);
+            return PicForWrapper(
+              initDir: initDir,
+              child: _PicForDialog(),
+            );
           });
 
       return directory;
     } else {
-      throw UnsupportedError('DirectoryPicker is only supported on android!');
+      throw UnsupportedError('안드로이드만 지원합니다');
     }
   }
 
   static String rootPath = "/storage/emulated/0/";
 }
 
-class DirectoryPickerData extends InheritedWidget {
-  final Color? backgroundColor;
-  final String? message;
-  final Directory? rootDirectory;
-  final ShapeBorder? shape;
+class PicForWrapper extends InheritedWidget {
+  final Directory? initDir;
 
-  DirectoryPickerData(
-      {required Widget child,
-        this.backgroundColor,
-        this.message,
-        this.rootDirectory,
-        this.shape})
-      : super(child: child);
+  const PicForWrapper({
+    super.key,
+    required super.child,
+    this.initDir,
+  });
 
-  static DirectoryPickerData? of(BuildContext context) {
-    return context.dependOnInheritedWidgetOfExactType(
-        aspect: DirectoryPickerData);
+  static PicForWrapper? of(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType(aspect: PicForWrapper);
   }
 
   @override
@@ -61,15 +50,13 @@ class DirectoryPickerData extends InheritedWidget {
   }
 }
 
-class _DirectoryPickerDialog extends StatefulWidget {
+class _PicForDialog extends StatefulWidget {
   @override
-  _DirectoryPickerDialogState createState() => _DirectoryPickerDialogState();
+  _PicForDialogState createState() => _PicForDialogState();
 }
 
-class _DirectoryPickerDialogState extends State<_DirectoryPickerDialog>
+class _PicForDialogState extends State<_PicForDialog>
     with WidgetsBindingObserver {
-  static final double spacing = 8;
-
   bool canPrompt = true;
   bool checkingForPermission = false;
   PermissionStatus? status;
@@ -111,7 +98,6 @@ class _DirectoryPickerDialogState extends State<_DirectoryPickerDialog>
       status = await Permission.manageExternalStorage.status;
       print(status);
       if (status!.isRestricted) {
-        // We didn't ask for permission
         status = await Permission.manageExternalStorage.request();
       }
 
@@ -120,66 +106,59 @@ class _DirectoryPickerDialogState extends State<_DirectoryPickerDialog>
       }
 
       if (status!.isPermanentlyDenied) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          backgroundColor: Colors.green,
-          content: Text('Please setup Permission from App Permission Settings'),
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          backgroundColor: Colors.amber,
+          content: Text('먼저 권한 설정을 해주세요'),
         ));
       }
     }
   }
 
-  DirectoryPickerData? get data => DirectoryPickerData.of(context);
-
-  String? get message {
-    if (data!.message == null) {
-      return 'Please setup Permission from App Permission Settings\n\nApp needs read access to your device storage to load directories';
-    } else {
-      return data!.message;
-    }
-  }
+  PicForWrapper? get data => PicForWrapper.of(context);
 
   Widget _buildBody(BuildContext context) {
     final ThemeData theme = Theme.of(context);
 
     // print("status $status");
     if (status == null) {
-      return Padding(
-          padding: EdgeInsets.all(spacing * 2),
+      return const Padding(
+          padding: EdgeInsets.all(16),
           child: Column(
-            children: <Widget>[
-              CircularProgressIndicator(),
-              SizedBox(height: spacing),
-              Text('Checking permission', textAlign: TextAlign.center)
-            ],
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.max,
+            children: <Widget>[
+              CircularProgressIndicator(),
+              SizedBox(height: 8),
+              Text('권한 체크 중', textAlign: TextAlign.center)
+            ],
           ));
     } else if (status == PermissionStatus.granted) {
-      return DirectoryList();
+      return const DirectoryList();
     } else if (status == PermissionStatus.denied) {
-      return Center(
+      return const Center(
         child: Padding(
-          padding: EdgeInsets.all(spacing * 2),
+          padding: EdgeInsets.all(16),
           child: Text(
-            'App is restricted from accessing your device storage',
+            '기기 저장소 접근이 제한되어 있습니다',
             textAlign: TextAlign.center,
           ),
         ),
       );
     } else {
       return Padding(
-          padding: EdgeInsets.all(spacing * 2),
+          padding: const EdgeInsets.all(16),
           child: Column(
-            children: <Widget>[
-              Text(message!, textAlign: TextAlign.center),
-              SizedBox(height: spacing),
-              MaterialButton(
-                  child: Text('Grant Permission'),
-                  color: theme.primaryColor,
-                  onPressed: _requestPermission)
-            ],
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.max,
+            children: <Widget>[
+              const Text("", textAlign: TextAlign.center),
+              const SizedBox(height: 8),
+              MaterialButton(
+                  color: theme.primaryColor,
+                  onPressed: _requestPermission,
+                  child: const Text('권한 설정 하기'),
+              )
+            ],
           ));
     }
   }
@@ -188,9 +167,7 @@ class _DirectoryPickerDialogState extends State<_DirectoryPickerDialog>
   Widget build(BuildContext context) {
     _getPermissionStatus();
     return Dialog(
-      backgroundColor: data!.backgroundColor,
       child: _buildBody(context),
-      shape: data!.shape,
     );
   }
 }

@@ -3,17 +3,17 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
-import 'FolderPicker.dart';
+import 'FolderSelector.dart';
 
 class DirectoryList extends StatefulWidget {
+  const DirectoryList({super.key});
+
   @override
   _DirectoryListState createState() => _DirectoryListState();
 }
 
 class _DirectoryListState extends State<DirectoryList> {
-  static final double spacing = 8;
-
-  Directory? rootDirectory;
+  Directory? initDir;
   Directory? currentDirectory;
   List<FileSystemEntity> directories = [];
   late Stream<FileSystemEntity> dstream;
@@ -32,7 +32,7 @@ class _DirectoryListState extends State<DirectoryList> {
 
     return ListTile(
       leading: Icon(Icons.folder, color: theme.primaryColor),
-      title: Text('..'),
+      title: const Text('..'),
       onTap: () => _setDirectory(currentDirectory!.parent),
     );
   }
@@ -44,14 +44,17 @@ class _DirectoryListState extends State<DirectoryList> {
       count += 1;
     }
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisAlignment: MainAxisAlignment.start,
+      mainAxisSize: MainAxisSize.max,
       children: [
         Expanded(
           child: ListView.builder(
             scrollDirection: Axis.vertical,
             itemBuilder: (context, index) {
               if (index == 0) {
-                if (directories.length == 0) {
-                  return ListTile(
+                if (directories.isEmpty) {
+                  return const ListTile(
                     leading: CircularProgressIndicator(),
                     title: Text("탐색중"),
                     onTap: null,
@@ -59,22 +62,20 @@ class _DirectoryListState extends State<DirectoryList> {
                 } else {
                   return _buildBackNav(context);
                 }
-              } else if (count == directories.length + 2 && index == count - 1) {
-                return ListTile(
+              } else if (count == directories.length + 2 &&
+                  index == count - 1) {
+                return const ListTile(
                   leading: CircularProgressIndicator(),
                   title: Text("탐색중"),
                   onTap: null,
                 );
               } else {
                 return ListTile(
-                  leading: Icon(
-                      Icons.folder,
-                      color: theme.colorScheme.secondary),
-                  title: Text(_getDirectoryName(
-                      directories[index - 1].path)),
+                  leading:
+                  Icon(Icons.folder, color: theme.colorScheme.secondary),
+                  title: Text(_getDirectoryName(directories[index - 1].path)),
                   onTap: () =>
-                      _setDirectory(
-                          Directory(directories[index - 1].path)),
+                      _setDirectory(Directory(directories[index - 1].path)),
                 );
               }
             },
@@ -82,75 +83,70 @@ class _DirectoryListState extends State<DirectoryList> {
           ),
         ),
       ],
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisAlignment: MainAxisAlignment.start,
-      mainAxisSize: MainAxisSize.max,
     );
   }
 
   Widget _buildHeader(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     var path = (currentDirectory != null)
-        ? currentDirectory?.path.replaceAll(FolderPicker.rootPath, "") ?? ''
+        ? currentDirectory?.path.replaceAll(FolderSelector.rootPath, "") ?? ''
         : "";
 
     return Container(
+      decoration: BoxDecoration(
+          border:
+              Border(bottom: BorderSide(color: theme.primaryColor, width: 2))),
+      padding: const EdgeInsets.all(8),
       child: Row(
+        mainAxisSize: MainAxisSize.max,
         children: <Widget>[
           Expanded(
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Selected directory', style: theme.textTheme.labelMedium),
-                SizedBox(height: spacing / 2),
+                Text('선택된 폴더', style: theme.textTheme.labelMedium),
+                const SizedBox(height: 4),
                 Text(path, style: theme.textTheme.labelSmall)
               ],
-              crossAxisAlignment: CrossAxisAlignment.start,
             ),
           ),
           Padding(
-            padding: EdgeInsets.only(left: spacing / 2),
+            padding: const EdgeInsets.only(left: 4),
             child: IconButton(
                 color: theme.primaryColor,
-                icon: Icon(Icons.check),
+                icon: const Icon(Icons.check),
                 onPressed: () {
                   if (!isDone) {
                     setState(() {
                       isDone = true;
-                      if (ss != null) {
-                        ss.cancel();
-                      }
+                      ss.cancel();
                     });
                   }
                   Navigator.pop(context, currentDirectory);
                 }),
           )
         ],
-        mainAxisSize: MainAxisSize.max,
       ),
-      decoration: BoxDecoration(
-          border:
-          Border(bottom: BorderSide(color: theme.primaryColor, width: 2))),
-      padding: EdgeInsets.all(spacing),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Column(
+      mainAxisSize: MainAxisSize.max,
       children: <Widget>[
         _buildHeader(context),
         Expanded(
-          child: hasDstream ? _buildDirectories(context) : Text(""),
+          child: hasDstream ? _buildDirectories(context) : const Text(""),
         ),
       ],
-      mainAxisSize: MainAxisSize.max,
     );
   }
 
   Future<void> _init() async {
     directories = [];
-    rootDirectory = data!.rootDirectory;
-    _setDirectory(rootDirectory);
+    initDir = data!.initDir;
+    _setDirectory(initDir);
     hasDstream = true;
   }
 
@@ -175,9 +171,7 @@ class _DirectoryListState extends State<DirectoryList> {
           });
         });
       } catch (e) {
-        // Ignore when tried navigating to directory that does not exist
-        // or to which user does not have permission to read
-        print(e);
+        debugPrint(e.toString());
       }
     });
   }
@@ -186,5 +180,5 @@ class _DirectoryListState extends State<DirectoryList> {
     return directoryPath.split('/').last;
   }
 
-  DirectoryPickerData? get data => DirectoryPickerData.of(context);
+  PicForWrapper? get data => PicForWrapper.of(context);
 }
