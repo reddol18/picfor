@@ -1,9 +1,10 @@
 import 'dart:io';
 
-import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'FolderPicker.dart';
 
 void main() {
   runApp(const MyApp());
@@ -16,7 +17,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: '폴더라이징',
       theme: ThemeData(
         // This is the theme of your application.
         //
@@ -36,7 +37,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(title: '폴더라이징'),
     );
   }
 }
@@ -75,18 +76,33 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> _pickFolder() async {
     debugPrint("Before Pick");
-    final result = await getDirectoryPath();
+    if (folderPath == '') {
+      folderPath = FolderPicker.rootPath;
+    }
+    Directory dir = Directory(folderPath);
+    Directory? newDirectory = await FolderPicker.pick(
+        allowFolderCreation: false,
+        context: context,
+        barrierDismissible: false,
+        rootDirectory: dir,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(10))));
+
+    //final result = await getDirectoryPath();
     debugPrint("After Pick");
-    if (result != null) {
+    if (newDirectory != null) {
       setState(() {
-        folderPath = result;
+        folderPath = newDirectory.path;
+        debugPrint(folderPath);
       });
+      await _saveFolder(folderPath);
     }
   }
 
   Future<bool> isDirectoryExists(String directoryPath) async {
     final directory = Directory(directoryPath);
-    return await directory.exists();
+    final bool result = await directory.exists();
+    return result;
   }
 
   Future<void> createDirectory(String directoryPath) async {
@@ -103,9 +119,10 @@ class _MyHomePageState extends State<MyHomePage> {
       String sourceFilePath, String destinationFilePath) async {
     try {
       final file = File(sourceFilePath);
-      await file.copy(destinationFilePath);
+      String destFile = "$destinationFilePath/${file.path.split('/').last}";
+      await file.copy(destFile);
       await file.delete();
-      print('파일 이동 성공: $sourceFilePath -> $destinationFilePath');
+      print('파일 이동 성공: $sourceFilePath -> $destFile');
     } catch (e) {
       print('파일 이동 실패: $e');
     }
@@ -133,11 +150,13 @@ class _MyHomePageState extends State<MyHomePage> {
           String newFolderPath = '${folderPath}/${year}/${month}/${day}';
           debugPrint(newFolderPath);
           // 날짜에 맞는 폴더가 없으면 만든다
-          if (!await isDirectoryExists(newFolderPath)) {
-            //await createDirectory(newFolderPath);
+          final bool dirExist = await isDirectoryExists(newFolderPath);
+          if (!dirExist) {
+            debugPrint("$newFolderPath 새로 만들어야 함");
+            await createDirectory(newFolderPath);
           }
           // 폴더에 파일을 이동시킨다
-          //await moveFile(item.path, newFolderPath);
+          await moveFile(item.path, newFolderPath);
         }
       }, onDone: () {
         setState(() {
@@ -165,6 +184,12 @@ class _MyHomePageState extends State<MyHomePage> {
         hasDate = true;
       });
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _getSavedFolder();
   }
 
   @override
