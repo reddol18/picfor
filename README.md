@@ -1,4 +1,4 @@
-## 스마트폰의 특정 폴더내 파일들을 생성한 년/월/일에 해당하는 폴더로 분리하여 저장하는 앱 입니다.
+- 스마트폰의 특정 폴더내 파일들을 생성한 년/월/일에 해당하는 폴더로 분리하여 저장하는 앱 입니다.
 - ![image](https://github.com/user-attachments/assets/16b9d3d9-3bf4-4a5c-b807-6b709e241931)
 - "폴더 선택"을 누르면 아래와 같은 다이얼로그가 뜹니다.
   - ![image](https://github.com/user-attachments/assets/5c3fcbe0-fd68-4c3c-8f33-b720ce666354)
