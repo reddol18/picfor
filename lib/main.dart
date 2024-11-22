@@ -81,7 +81,6 @@ class _MyHomePageState extends State<MyHomePage> {
     }
     Directory dir = Directory(folderPath);
     Directory? newDirectory = await FolderPicker.pick(
-        allowFolderCreation: false,
         context: context,
         barrierDismissible: false,
         rootDirectory: dir,

@@ -1,9 +1,3 @@
-/*
- * Copyright (c) 2020. Kapil. All Rights Reserved
- *  This file is protected by copyright and distributed under
- *  licenses restricting copying, distribution and decompilation.
- */
-
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -12,18 +6,8 @@ import 'package:permission_handler/permission_handler.dart';
 import 'DirectoryList.dart';
 
 class FolderPicker {
-  /// Opens a dialog to allow user to pick a directory.
-  ///
-  /// If [message] is non null then it is rendered when user denies to give
-  /// external storage permission. A default message will be used if [message]
-  /// is not specified. [rootDirectory] is the initial directory whose
-  /// sub directories are shown for picking
-  ///
-  /// If [allowFolderCreation] is true then user will be allowed to create
-  /// new folders directly from the picker. Make sure that you add write
-  /// permission to manifest if you want to support folder creationa
   static Future<Directory?> pick(
-      {bool allowFolderCreation = false,
+      {
         required BuildContext context,
         bool barrierDismissible = true,
         Color? backgroundColor,
@@ -36,7 +20,6 @@ class FolderPicker {
           barrierDismissible: barrierDismissible,
           builder: (BuildContext context) {
             return DirectoryPickerData(
-                allowFolderCreation: allowFolderCreation,
                 backgroundColor: backgroundColor,
                 child: _DirectoryPickerDialog(),
                 message: message,
@@ -54,7 +37,6 @@ class FolderPicker {
 }
 
 class DirectoryPickerData extends InheritedWidget {
-  final bool? allowFolderCreation;
   final Color? backgroundColor;
   final String? message;
   final Directory? rootDirectory;
@@ -62,7 +44,6 @@ class DirectoryPickerData extends InheritedWidget {
 
   DirectoryPickerData(
       {required Widget child,
-        this.allowFolderCreation,
         this.backgroundColor,
         this.message,
         this.rootDirectory,
@@ -88,8 +69,6 @@ class _DirectoryPickerDialog extends StatefulWidget {
 class _DirectoryPickerDialogState extends State<_DirectoryPickerDialog>
     with WidgetsBindingObserver {
   static final double spacing = 8;
-
-//  static final PermissionGroup requiredPermission = PermissionGroup.storage;
 
   bool canPrompt = true;
   bool checkingForPermission = false;
@@ -117,8 +96,6 @@ class _DirectoryPickerDialogState extends State<_DirectoryPickerDialog>
     super.dispose();
   }
 
-  /// If silent is true then below function will not try to request permission
-  /// if permission is not granter
   Future<void> _getPermissionStatus() async {
     var updatedStatus = await Permission.manageExternalStorage.status;
     final updatedCanPrompt = await Permission.manageExternalStorage.isGranted;
